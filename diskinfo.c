@@ -23,19 +23,24 @@ struct __attribute__((__packed__)) superblock_t {
 
 int main(int argc, char* argv[])	{
 
-	int fd = open("test.img", O_RDONLY);
+	//open the file
+	int fd = open(argv[1], O_RDWR);
 
 	if (fd == -1)	{
 		printf("error opening test.img\n");
 		return 1;
 	}
 
-	char* data = mmap(NULL, 0x200, PROT_READ, MAP_SHARED, fd, 0);
+	//mmap the file
+	struct stat buffer;
+	char* data = mmap(NULL, buffer.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+
 
 	if (data == (void*) -1)	{
 		printf("mmap failed with: %s\n", strerror(errno));
 	}
 
+	//put it into the struct and print the struct info
     struct superblock_t* sb;
     sb=(struct superblock_t*)data;
     printf("Super block information:\n");
@@ -47,6 +52,26 @@ int main(int argc, char* argv[])	{
     printf("Root directory block: %d\n", ntohl(sb->root_dir_block_count));
     printf("\n");
     printf("FAT information:\n");
+    
+    //get the FAT info
+    int iterator = ntohl(sb->fat_start_block)*htons(sb->block_size);
+    int max = ((ntohl(sb->fat_start_block + sb->fat_block_count)*htons(sb->block_size)));
+
+    int availableBlocks = 0;
+
+    while(iterator < max){
+    	uint32_t block = ntohl(*(uint32_t*)&data[iterator]);
+
+    	if(block == 0x0){
+    		availableBlocks ++;
+    	}
+
+    	iterator = iterator + 4;
+    	printf("%d\n",iterator);
+    }
+
+    printf("Available Blocks:%d\n",availableBlocks);
+    
 
 
 
