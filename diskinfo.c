@@ -38,7 +38,6 @@ int main(int argc, char* argv[])	{
 	struct stat buffer;
 	char* data = mmap(NULL, sizeof(char)*buffer.st_size, PROT_READ, MAP_SHARED, fd, 0);
 
-
 	if (data == (void*) -1)	{
 		printf("mmap failed with: %s\n", strerror(errno));
 	}
