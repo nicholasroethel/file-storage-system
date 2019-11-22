@@ -64,10 +64,12 @@ int main(int argc, char* argv[])	{
     int iterator = ntohl(sb->fat_start_block)*htons(sb->block_size);
     int max = ((ntohl(sb->fat_start_block + sb->fat_block_count)*htons(sb->block_size)));
 
+    //vars to store the data
     int availableBlocks = 0;
     int reservedBlocks = 0;
     int allocatedBlocks = 0;
 
+    //iterate
     while(iterator < max){
     	uint32_t block = ntohl(*(uint32_t*)&data[iterator]);
 
@@ -83,11 +85,10 @@ int main(int argc, char* argv[])	{
     	iterator = iterator + 4;
     }
 
+    //print the FAT info
     printf("Available Blocks: %d\n",availableBlocks);
     printf("Reserved Blocks: %d\n",reservedBlocks);
     printf("Allocated Blocks: %d\n",allocatedBlocks);
-
-
 
 	return 0;
 
