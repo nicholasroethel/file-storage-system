@@ -52,12 +52,14 @@ int main(int argc, char* argv[])	{
     printf("Root directory block: %d\n", ntohl(sb->root_dir_block_count));
     printf("\n");
     printf("FAT information:\n");
-    
+
     //get the FAT info
     int iterator = ntohl(sb->fat_start_block)*htons(sb->block_size);
     int max = ((ntohl(sb->fat_start_block + sb->fat_block_count)*htons(sb->block_size)));
 
     int availableBlocks = 0;
+    int reservedBlocks = 0;
+    int allocatedBlocks = 0;
 
     while(iterator < max){
     	uint32_t block = ntohl(*(uint32_t*)&data[iterator]);
@@ -65,13 +67,18 @@ int main(int argc, char* argv[])	{
     	if(block == 0x0){
     		availableBlocks ++;
     	}
-
+    	else if (block == 0x1){
+    		reservedBlocks ++;
+    	}
+    	else{
+    		allocatedBlocks++;
+    	}
     	iterator = iterator + 4;
-    	printf("%d\n",iterator);
     }
 
-    printf("Available Blocks:%d\n",availableBlocks);
-    
+    printf("Available Blocks: %d\n",availableBlocks);
+    printf("Reserved Blocks: %d\n",reservedBlocks);
+    printf("Allocated Blocks: %d\n",allocatedBlocks);
 
 
 
