@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <stdlib.h>
 #include <time.h>
+#include <netinet/in.h>
 // Super block
 struct __attribute__((__packed__)) superblock_t {
  	uint8_t  fs_id [8];
