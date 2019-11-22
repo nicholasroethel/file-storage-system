@@ -25,7 +25,6 @@ struct __attribute__((__packed__)) superblock_t {
 int main(int argc, char* argv[])	{
 
 	//open the file
-	//int fd = open("test.img", O_RDONLY);
 	int fd = open(argv[1], O_RDWR);
 
 
@@ -36,6 +35,12 @@ int main(int argc, char* argv[])	{
 
 	//mmap the file
 	struct stat buffer;
+	if (fstat(fd,&st)==-1){
+		printf("fstat failed exiting.\n");
+		return -1;
+	}
+
+
 	char* data = mmap(NULL, sizeof(char)*buffer.st_size, PROT_READ, MAP_SHARED, fd, 0);
 
 	if (data == (void*) -1)	{
