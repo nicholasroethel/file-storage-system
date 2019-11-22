@@ -25,7 +25,7 @@ struct __attribute__((__packed__)) superblock_t {
 int main(int argc, char* argv[])	{
 
 	//open the file
-	int fd = open("test.img", O_RDWR);
+	int fd = open("test.img", O_RDONLY);
 	//int fd = open(argv[1], O_RDWR);
 
 
