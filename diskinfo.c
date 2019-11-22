@@ -36,7 +36,7 @@ int main(int argc, char* argv[])	{
 
 	//mmap the file
 	struct stat buffer;
-	char* data = mmap(NULL, sizeof(char)*buffer.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	char* data = mmap(NULL, sizeof(char)*buffer.st_size, PROT_READ, MAP_SHARED, fd, 0);
 
 
 	if (data == (void*) -1)	{
