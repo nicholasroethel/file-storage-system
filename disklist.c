@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <netinet/in.h>
+
 // Super block
 struct __attribute__((__packed__)) superblock_t {
  	uint8_t  fs_id [8];
@@ -20,6 +21,16 @@ struct __attribute__((__packed__)) superblock_t {
  	uint32_t fat_block_count;
 	uint32_t root_dir_start_block;
 	uint32_t root_dir_block_count;
+};
+
+// Time and date entry
+struct __attribute__((__packed__)) dir_entry_timedate_t {
+    uint16_t year;
+    uint8_t month;
+    uint8_t day;
+    uint8_t hour;
+    uint8_t minute;
+    uint8_t second;
 };
 
 // Directory entry
@@ -34,15 +45,50 @@ struct __attribute__((__packed__)) dir_entry_t {
     uint8_t unused[6];
 };
 
-// Time and date entry
-struct __attribute__((__packed__)) dir_entry_timedate_t {
-    uint16_t year;
-    uint8_t month;
-    uint8_t day;
-    uint8_t hour;
-    uint8_t minute;
-     uint8_t second;
-};
+struct superblock_t s;
+struct superblock_t* sb = &s;
+
+
+void goThroughEntry(char* data, uint32_t block_count, uint32_t starting_block, uint16_t block_size){
+
+    printf("Block count: %d\n",block_count);
+    printf("Starting block: %d\n",starting_block);
+
+    int count = 0; //counter for how many blocks travers
+
+    uint32_t fatStart = ntohl(sb->fat_start_block);//where the block where the fat starts
+
+    printf("Fat start: %d\n\n",fatStart);
+
+    for(uint32_t i = starting_block; count<block_count; count++){
+
+            //get the start info
+            uint32_t iterator = i*block_size;
+
+            uint32_t max = (starting_block + 1)*(block_size);
+
+            printf("Iterator: %d\n",iterator);
+            printf("Max: %d\n",max);
+
+            //iterate
+             while(iterator < max){
+                struct dir_entry_t *entry = malloc (sizeof (struct dir_entry_t));
+                uint8_t status = (*(uint8_t*)&data[iterator]);
+                entry->status = status;
+                printf("%u\n",status);
+                iterator = iterator + 64;
+            }
+
+        //printf("2\n");
+        printf("i = %d\n\n",i );
+
+        i = ntohl(*(uint32_t*)&data[fatStart*block_size+i*4]); //get the next block
+
+       // printf("3\n");
+    }
+}
+
+
 
 int main(int argc, char* argv[])	{
 
@@ -69,24 +115,11 @@ int main(int argc, char* argv[])	{
 	}
 
 	//put it into the struct and print the struct info
-    struct superblock_t* sb;
+       
     sb=(struct superblock_t*)data;
 
-    //get the start info
-    int iterator = ntohl(sb->root_dir_start_block)*htons(sb->block_size);
-    int max = ((ntohl(sb->root_dir_start_block + sb->root_dir_block_count)*htons(sb->block_size)));
-    //iterate
-    while(iterator < max){
-        struct dir_entry_t *entry = malloc (sizeof (struct dir_entry_t));
-        uint8_t fsID = htons(*(uint8_t*)&data[iterator]);
-        entry->fs_id = fsID;
-        printf("%d\n",fsID );
-        iterator = iterator +64;
-    }
 
-    
-    
-
+    goThroughEntry(data, ntohl(sb->root_dir_block_count), ntohl(sb->root_dir_start_block), htons(sb->block_size));
 
 
 	return 0;
