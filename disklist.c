@@ -199,7 +199,7 @@ void goThroughEntry(char* data, uint32_t block_count, uint32_t starting_block, u
 
         //printf("2\n");
         //printf("i = %d\n\n",i );
-        
+
         i = ntohl(*(uint32_t*)&data[fatStart*block_size+i*4]); //get the next block
 
        // printf("3\n");
@@ -237,7 +237,7 @@ int main(int argc, char* argv[])	{
     sb=(struct superblock_t*)data;
 
 
-    //goThroughEntry(data, ntohl(sb->root_dir_block_count), ntohl(sb->root_dir_start_block), htons(sb->block_size));
+    goThroughEntry(data, ntohl(sb->root_dir_block_count), ntohl(sb->root_dir_start_block), htons(sb->block_size));
 
 
 	return 0;
