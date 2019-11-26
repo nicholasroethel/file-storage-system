@@ -58,29 +58,65 @@ void goThroughEntry(char* data, uint32_t block_count, uint32_t starting_block, u
 
     uint32_t fatStart = ntohl(sb->fat_start_block);//where the block where the fat starts
 
-    printf("Fat start: %d\n\n",fatStart);
+    //printf("Fat start: %d\n\n",fatStart);
 
     for(uint32_t i = starting_block; count<block_count; count++){
 
             //get the start info
             uint32_t iterator = i*block_size;
 
-            uint32_t max = (starting_block + 1)*(block_size);
+            uint32_t max = (i + 1)*(block_size);
 
-            printf("Iterator: %d\n",iterator);
-            printf("Max: %d\n",max);
+            //printf("Iterator: %d\n",iterator);
+            //printf("Max: %d\n",max);
 
             //iterate
              while(iterator < max){
                 struct dir_entry_t *entry = malloc (sizeof (struct dir_entry_t));
+
                 uint8_t status = (*(uint8_t*)&data[iterator]);
                 entry->status = status;
-                printf("%u\n",status);
+
+                uint32_t startingBlock = ntohl(*(uint32_t*)&data[iterator+1]);
+                entry->starting_block = startingBlock;
+
+                uint32_t blockCount = ntohl(*(uint32_t*)&data[iterator+5]);
+                entry->block_count = blockCount;
+
+                uint32_t size = ntohl(*(uint32_t*)&data[iterator+9]);
+                entry->size = size;
+
+                struct dir_entry_timedate_t create_time = (*(struct dir_entry_timedate_t*)&data[iterator+13]);
+                entry->create_time = create_time;
+
+                struct dir_entry_timedate_t modify_time = (*(struct dir_entry_timedate_t*)&data[iterator+20]);
+                entry->modify_time = modify_time;
+
+                if(status != 0){
+                    printf("Status: %u\n",status);
+                    printf("Starting Block: %u\n",startingBlock);
+                    printf("Block Count: %u\n",blockCount);
+                    printf("Size: %u\n",size);
+                    printf("Create Time: %u:%u:%u:%u:%u:%u\n", htons(create_time.year), (create_time.month), (create_time.day), (create_time.hour), (create_time.minute), (create_time.second));
+                    printf("Modify Time: %u:%u:%u:%u:%u:%u\n", htons(modify_time.year), (modify_time.month), (modify_time.day), (modify_time.hour), (modify_time.minute), (modify_time.second));
+                    uint8_t filename[31];
+                    printf("Filename: %s\n",filename);
+                    for (int count = 0; count<31;count++){
+                        filename[count] = (*(uint8_t*)&data[count+iterator+27]);
+                        entry->filename[count] = filename[count];
+                    }
+                    char* name = (char*)(entry->filename);
+                    printf("\n");                            
+                }
+
+
+
                 iterator = iterator + 64;
+                
             }
 
         //printf("2\n");
-        printf("i = %d\n\n",i );
+        //printf("i = %d\n\n",i );
 
         i = ntohl(*(uint32_t*)&data[fatStart*block_size+i*4]); //get the next block
 
