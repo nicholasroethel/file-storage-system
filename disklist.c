@@ -71,6 +71,7 @@ void goThroughEntry(char* data, uint32_t block_count, uint32_t starting_block, u
             //printf("Max: %d\n",max);
 
             //iterate
+
              while(iterator < max){
                 struct dir_entry_t *entry = malloc (sizeof (struct dir_entry_t));
 
@@ -92,7 +93,10 @@ void goThroughEntry(char* data, uint32_t block_count, uint32_t starting_block, u
                 struct dir_entry_timedate_t modify_time = (*(struct dir_entry_timedate_t*)&data[iterator+20]);
                 entry->modify_time = modify_time;
 
+                char* name;
+
                 if(status != 0){
+                    printf("\n");
                     printf("Status: %u\n",status);
                     printf("Starting Block: %u\n",startingBlock);
                     printf("Block Count: %u\n",blockCount);
@@ -105,7 +109,7 @@ void goThroughEntry(char* data, uint32_t block_count, uint32_t starting_block, u
                         filename[count] = (*(uint8_t*)&data[count+iterator+27]);
                         entry->filename[count] = filename[count];
                     }
-                    char* name = (char*)(entry->filename);
+                    name = (char*)(entry->filename);
                     printf("\n");                            
                 }
 
