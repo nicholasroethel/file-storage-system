@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <netinet/in.h>
+#include <string.h>
 
 // Super block
 struct __attribute__((__packed__)) superblock_t {

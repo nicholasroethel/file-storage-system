@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <netinet/in.h>
+#include <string.h>
 
 // Super block
 struct __attribute__((__packed__)) superblock_t {
@@ -37,7 +38,7 @@ struct __attribute__((__packed__)) dir_entry_timedate_t {
 struct superblock_t s;
 struct superblock_t* sb = &s;
 
-void goThroughEntry(char* data, uint32_t block_count, uint32_t starting_block, uint16_t block_size){
+void findFile(char* file, char* data, uint32_t block_count, uint32_t starting_block, uint16_t block_size){
 
     printf("Block count: %d\n",block_count);
     printf("Starting block: %d\n",starting_block);
@@ -63,25 +64,14 @@ void goThroughEntry(char* data, uint32_t block_count, uint32_t starting_block, u
                 struct dir_entry_timedate_t create_time = (*(struct dir_entry_timedate_t*)&data[iterator+13]);
                 struct dir_entry_timedate_t modify_time = (*(struct dir_entry_timedate_t*)&data[iterator+20]);
                 char* name;
-
-                //print if non-zero status
-                if(status != 0){
-                    uint8_t filename[31];
-                    for (int count = 0; count<31;count++){
-                        filename[count] = (*(uint8_t*)&data[count+iterator+27]);
-                    }
-                    name = (char*)(filename);
-
-                    if (status==3){
-                        printf("F ");
-                    }
-                    else if (status==5){
-                        printf("D ");
-                    }
-                    printf("%10d ",size);
-                    printf("%30s ",filename);
-                    printf("%u:%u:%u:%u:%u:%u", htons(modify_time.year), (modify_time.month), (modify_time.day), (modify_time.hour), (modify_time.minute), (modify_time.second));
-                    printf("\n");                            
+                uint8_t filename[31];
+                for (int count = 0; count<31;count++){
+                    filename[count] = (*(uint8_t*)&data[count+iterator+27]);
+                }
+                name = (char*)(filename);
+                
+                if(strcmp(name,file)){
+                    printf("FOUND\n");
                 }
 
                 iterator = iterator + 64;
@@ -98,6 +88,12 @@ int main(int argc, char* argv[])	{
 
 	//open the file
 	int fd = open(argv[1], O_RDWR);
+
+    //get the directory
+    char* directory = argv[2];
+
+    //get the file
+    char* file = argv[3];
 
 	if (fd == -1)	{
 		printf("error opening test.img\n");
@@ -119,10 +115,11 @@ int main(int argc, char* argv[])	{
 	}
 
 	//cast the sb into a struct
+
     sb=(struct superblock_t*)data;
 
     //print the given directory
-    goThroughEntry(data, ntohl(sb->root_dir_block_count), ntohl(sb->root_dir_start_block), htons(sb->block_size));
+    findFile(file, data, ntohl(sb->root_dir_block_count), ntohl(sb->root_dir_start_block), htons(sb->block_size));
 
 	return 0;
 

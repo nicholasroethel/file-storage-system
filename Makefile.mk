@@ -1,11 +1,14 @@
 .phony all:
-all: diskinfo disklist
+all: diskinfo disklist diskget
 
-mts: diskinfo.c
+diskinfo: diskinfo.c
 	gcc diskinfo.c -o diskinfo 
 
-mts: disklist.c
+disklist: disklist.c
 	gcc disklist.c -o disklist 
+
+diskget: diskget.c
+	gcc diskget.c -o diskget 
 
 .PHONY clean:
 clean:
