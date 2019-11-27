@@ -39,8 +39,6 @@ struct superblock_t* sb = &s;
 
 void goThroughEntry(char* data, uint32_t block_count, uint32_t starting_block, uint16_t block_size){
 
-    printf("Block count: %d\n",block_count);
-    printf("Starting block: %d\n",starting_block);
 
     int count = 0; //counter for how many blocks travers
 

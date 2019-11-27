@@ -37,11 +37,39 @@ struct __attribute__((__packed__)) dir_entry_timedate_t {
 
 struct superblock_t s;
 struct superblock_t* sb = &s;
+uint32_t amountOfBlocks = 0; //will store the amount of blocks
 
-void findFile(char* file, char* data, uint32_t block_count, uint32_t starting_block, uint16_t block_size){
 
-    printf("Block count: %d\n",block_count);
-    printf("Starting block: %d\n",starting_block);
+void copyData(uint32_t startingBlock, char* data, uint16_t block_size, FILE *file){
+
+    int count = 0; //counter for how many blocks travers
+
+    uint32_t fatStart = ntohl(sb->fat_start_block);//where the block where the fat starts
+
+    for(uint32_t i = startingBlock; count<amountOfBlocks; count++){
+
+            uint32_t iterator = i*block_size;
+
+            uint32_t max = (i + 1)*(block_size);
+            printf("%d\n",max);
+
+             while(iterator < max){
+
+                putc((*(uint8_t*)&data[iterator]), file);
+
+                iterator = iterator + 1;
+                
+            }
+
+        i = ntohl(*(uint32_t*)&data[fatStart*block_size+i*4]); //get the next block
+
+    }
+
+}
+
+
+uint32_t findFile(char* file, char* data, uint32_t block_count, uint32_t starting_block, uint16_t block_size){
+
 
     int count = 0; //counter for how many blocks travers
 
@@ -70,8 +98,13 @@ void findFile(char* file, char* data, uint32_t block_count, uint32_t starting_bl
                 }
                 name = (char*)(filename);
                 
-                if(strcmp(name,file)){
-                    printf("FOUND\n");
+                if(strcmp(name,file)==0){
+                    printf("Name: %s\n",name);
+                    printf("Starting block: %u\n",startingBlock);
+                    printf("Block count: %u\n",blockCount);
+                    printf("Size: %u\n",size);
+                    amountOfBlocks = blockCount;
+                    return startingBlock;
                 }
 
                 iterator = iterator + 64;
@@ -81,10 +114,13 @@ void findFile(char* file, char* data, uint32_t block_count, uint32_t starting_bl
         i = ntohl(*(uint32_t*)&data[fatStart*block_size+i*4]); //get the next block
 
     }
+    printf("File not found.\n");
+    exit(1);
 }
 
 
 int main(int argc, char* argv[])	{
+
 
 	//open the file
 	int fd = open(argv[1], O_RDWR);
@@ -94,6 +130,15 @@ int main(int argc, char* argv[])	{
 
     //get the file
     char* file = argv[3];
+
+    FILE *fptr; 
+    fptr = fopen(file,"w");
+
+    if(fptr == NULL)
+    {
+      printf("Error creating file");   
+      exit(1);             
+    }
 
 	if (fd == -1)	{
 		printf("error opening test.img\n");
@@ -119,7 +164,11 @@ int main(int argc, char* argv[])	{
     sb=(struct superblock_t*)data;
 
     //print the given directory
-    findFile(file, data, ntohl(sb->root_dir_block_count), ntohl(sb->root_dir_start_block), htons(sb->block_size));
+    uint32_t startingBlock = findFile(file, data, ntohl(sb->root_dir_block_count), ntohl(sb->root_dir_start_block), htons(sb->block_size));
+
+    copyData(startingBlock, data, htons(sb->block_size), fptr);
+
+    fclose(fptr);
 
 	return 0;
 
