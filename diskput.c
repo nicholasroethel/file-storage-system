@@ -44,20 +44,16 @@ uint32_t amountOfBlocks = 0; //will store the amount of blocks
 void copyData(uint32_t startingBlock, char* data, uint16_t block_size, FILE *file){
 
     int count = 0; //counter for how many blocks travers
-
     uint32_t fatStart = ntohl(sb->fat_start_block);//where the block where the fat starts
 
     for(uint32_t i = startingBlock; count<amountOfBlocks; count++){
 
             uint32_t iterator = i*block_size;
-
             uint32_t max = (i + 1)*(block_size);
             printf("%d\n",max);
 
              while(iterator < max){
-
                 putc((*(uint8_t*)&data[iterator]), file);
-
                 iterator = iterator + 1;
                 
             }
@@ -69,75 +65,19 @@ void copyData(uint32_t startingBlock, char* data, uint16_t block_size, FILE *fil
 }
 
 
-uint32_t findFile(char* file, char* data, uint32_t block_count, uint32_t starting_block, uint16_t block_size){
-
-
-    int count = 0; //counter for how many blocks travers
-
-    uint32_t fatStart = ntohl(sb->fat_start_block);//where the block where the fat starts
-
-
-    for(uint32_t i = starting_block; count<block_count; count++){
-
-            uint32_t iterator = i*block_size;
-
-            uint32_t max = (i + 1)*(block_size);
-
-             while(iterator < max){
-
-                //get the values for the directory entry
-                uint8_t status = (*(uint8_t*)&data[iterator]);
-                uint32_t startingBlock = ntohl(*(uint32_t*)&data[iterator+1]);
-                uint32_t blockCount = ntohl(*(uint32_t*)&data[iterator+5]);
-                uint32_t size = ntohl(*(uint32_t*)&data[iterator+9]);
-                struct dir_entry_timedate_t create_time = (*(struct dir_entry_timedate_t*)&data[iterator+13]);
-                struct dir_entry_timedate_t modify_time = (*(struct dir_entry_timedate_t*)&data[iterator+20]);
-                char* name;
-                uint8_t filename[31];
-                for (int count = 0; count<31;count++){
-                    filename[count] = (*(uint8_t*)&data[count+iterator+27]);
-                }
-                name = (char*)(filename);
-                
-                if(strcmp(name,file)==0){
-                    printf("Name: %s\n",name);
-                    printf("Starting block: %u\n",startingBlock);
-                    printf("Block count: %u\n",blockCount);
-                    printf("Size: %u\n",size);
-                    amountOfBlocks = blockCount;
-                    return startingBlock;
-                }
-
-                iterator = iterator + 64;
-                
-            }
-
-        i = ntohl(*(uint32_t*)&data[fatStart*block_size+i*4]); //get the next block
-
-    }
-    printf("File not found.\n");
-    exit(1);
-}
 
 
 int main(int argc, char* argv[])	{
 
-
-	//open the file
+	/* open the file */
 	int fd = open(argv[1], O_RDWR);
-
     if (fd == -1)   {
         printf("error opening test.img\n");
         return 1;
     }
 
-    //get the file
+    /* open the file */
     char* file = argv[2];
-
-    //get the directory
-    char* directory = argv[3];
-
-    //open the file
     FILE *fptr; 
     fptr = fopen(file,"r");
     if(fptr == NULL)
@@ -146,27 +86,40 @@ int main(int argc, char* argv[])	{
       exit(1);             
     }
 
+
+    //get the directory
+    char* directory = argv[3];
+
     //get the file size
     fseek(fptr, 0L, SEEK_END);
     int sz = ftell(fptr);
     printf("Size %d\n",sz);
 
-
-	//mmap the file
+    //fstat buffer
 	struct stat buffer;
 	if (fstat(fd,&buffer)==-1){
 		printf("fstat failed exiting.\n");
 		return -1;
 	}
 
+    // mmap the file to
 	char* data = mmap(NULL, sizeof(char)*buffer.st_size, PROT_READ, MAP_SHARED, fd, 0);
-
 	if (data == (void*) -1)	{
 		printf("mmap failed with: %s\n", strerror(errno));
 	}
 
+    printf("Length of mmap: %lu\n",strlen(data));
+
 	//cast the sb into a struct
     sb=(struct superblock_t*)data;
+
+    // get the file size
+    int fileSystemSize = htons(sb->block_size)*ntohl(sb->file_system_block_count);
+    printf("File size: %d\n",fileSystemSize);
+
+    char* fileSystem[fileSystemSize];
+
+    memcpy(fileSystem,data,fileSystemSize+1);
 
     //get the amount of blocks needed
     int blocks = ceil(sz/htons(sb->block_size))+1;
@@ -223,12 +176,12 @@ int main(int argc, char* argv[])	{
         uint32_t block = ntohl(*(uint32_t*)&data[iterator]);
         if(block == 0x0){
             if(count + 1 == blocks){
-                data[iterator] = *(char*)(0xFFFFFFFF);
+                data[iterator] = (char)(0xFFFFFFFF);
                 block = ntohl(*(uint32_t*)&data[iterator]);
                 printf("%d\n",block);
             }
             else{
-                data[iterator] = &(freeBlocks[count+1]);
+                data[iterator] = (char)(freeBlocks[count+1]);
                 block = ntohl(*(uint32_t*)&data[iterator]);
                 printf("%d\n",block);
             }
