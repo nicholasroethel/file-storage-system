@@ -59,12 +59,8 @@ void copyData(uint32_t startingBlock, char* data, uint16_t block_size, FILE *fil
             }
 
         i = ntohl(*(uint32_t*)&data[fatStart*block_size+i*4]); //get the next block
-
     }
-
 }
-
-
 
 
 int main(int argc, char* argv[])	{
@@ -119,7 +115,9 @@ int main(int argc, char* argv[])	{
 
     char* fileSystem[fileSystemSize];
 
-    memcpy(fileSystem,data,fileSystemSize+1);
+    printf("%s\n",data);
+
+  //  memcpy(*fileSystem,&data,fileSystemSize);
 
     //get the amount of blocks needed
     int blocks = ceil(sz/htons(sb->block_size))+1;
@@ -141,7 +139,6 @@ int main(int argc, char* argv[])	{
         }
         iterator = iterator + 4;
     }
-
 
     //print the FAT info
     printf("Available Blocks: %d\n",availableBlocks);
@@ -193,10 +190,6 @@ int main(int argc, char* argv[])	{
         }
         iterator = iterator + 4;
     }
-
-
-
-
 
     //print the given directory
     //uint32_t startingBlock = findFile(file, data, ntohl(sb->root_dir_block_count), ntohl(sb->root_dir_start_block), htons(sb->block_size));

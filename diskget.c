@@ -40,23 +40,18 @@ struct superblock_t* sb = &s;
 uint32_t amountOfBlocks = 0; //will store the amount of blocks
 
 
-void copyData(uint32_t startingBlock, char* data, uint16_t block_size, FILE *file){
+void copyData(uint32_t startingBlock, char* data, uint16_t block_size, FILE *file){ //copies the data into a new file
 
-    int count = 0; //counter for how many blocks travers
-
+    int count = 0; //counter for how many blocks to travers
     uint32_t fatStart = ntohl(sb->fat_start_block);//where the block where the fat starts
 
-    for(uint32_t i = startingBlock; count<amountOfBlocks; count++){
+    for(uint32_t i = startingBlock; count<amountOfBlocks; count++){ //loop that copies the file
 
             uint32_t iterator = i*block_size;
-
             uint32_t max = (i + 1)*(block_size);
-            printf("%d\n",max);
 
              while(iterator < max){
-
                 putc((*(uint8_t*)&data[iterator]), file);
-
                 iterator = iterator + 1;
                 
             }
@@ -68,7 +63,7 @@ void copyData(uint32_t startingBlock, char* data, uint16_t block_size, FILE *fil
 }
 
 
-uint32_t findFile(char* file, char* data, uint32_t block_count, uint32_t starting_block, uint16_t block_size){
+uint32_t findFile(char* file, char* data, uint32_t block_count, uint32_t starting_block, uint16_t block_size){ //returns a file start
 
 
     int count = 0; //counter for how many blocks travers
@@ -99,10 +94,6 @@ uint32_t findFile(char* file, char* data, uint32_t block_count, uint32_t startin
                 name = (char*)(filename);
                 
                 if(strcmp(name,file)==0){
-                    printf("Name: %s\n",name);
-                    printf("Starting block: %u\n",startingBlock);
-                    printf("Block count: %u\n",blockCount);
-                    printf("Size: %u\n",size);
                     amountOfBlocks = blockCount;
                     return startingBlock;
                 }
@@ -121,29 +112,30 @@ uint32_t findFile(char* file, char* data, uint32_t block_count, uint32_t startin
 
 int main(int argc, char* argv[])	{
 
-
-	//open the file
+	//open the file system
 	int fd = open(argv[1], O_RDWR);
-
-    //get the directory
-    char* directory = argv[2];
+    if (fd == -1)   {
+        printf("error opening test.img\n");
+        return 1;
+    }
 
     //get the file
-    char* file = argv[3];
+    char* file = argv[2];
 
-    FILE *fptr; 
-    fptr = fopen(file,"w");
+    if(file[0]=='/'){
+        memmove(file, file+1, strlen(file));
+    }
+    //get the directory
+    char* directory = argv[3];
 
+    //open a new file
+    FILE *fptr;  
+    fptr = fopen(directory,"w");
     if(fptr == NULL)
     {
       printf("Error creating file");   
       exit(1);             
     }
-
-	if (fd == -1)	{
-		printf("error opening test.img\n");
-		return 1;
-	}
 
 	//mmap the file
 	struct stat buffer;
@@ -152,20 +144,19 @@ int main(int argc, char* argv[])	{
 		return -1;
 	}
 
-
+    //mmap the data
 	char* data = mmap(NULL, sizeof(char)*buffer.st_size, PROT_READ, MAP_SHARED, fd, 0);
-
 	if (data == (void*) -1)	{
 		printf("mmap failed with: %s\n", strerror(errno));
 	}
 
 	//cast the sb into a struct
-
     sb=(struct superblock_t*)data;
 
-    //print the given directory
+    //get the starting block of the file
     uint32_t startingBlock = findFile(file, data, ntohl(sb->root_dir_block_count), ntohl(sb->root_dir_start_block), htons(sb->block_size));
 
+    //copy the data
     copyData(startingBlock, data, htons(sb->block_size), fptr);
 
     fclose(fptr);

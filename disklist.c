@@ -37,18 +37,13 @@ struct __attribute__((__packed__)) dir_entry_timedate_t {
 struct superblock_t s;
 struct superblock_t* sb = &s;
 
-void goThroughEntry(char* data, uint32_t block_count, uint32_t starting_block, uint16_t block_size){
-
+void goThroughEntry(char* data, uint32_t block_count, uint32_t starting_block, uint16_t block_size){ //goes through each entry
 
     int count = 0; //counter for how many blocks travers
-
     uint32_t fatStart = ntohl(sb->fat_start_block);//where the block where the fat starts
 
-
     for(uint32_t i = starting_block; count<block_count; count++){
-
             uint32_t iterator = i*block_size;
-
             uint32_t max = (i + 1)*(block_size);
 
              while(iterator < max){
@@ -78,7 +73,7 @@ void goThroughEntry(char* data, uint32_t block_count, uint32_t starting_block, u
                     }
                     printf("%10d ",size);
                     printf("%30s ",filename);
-                    printf("%u:%u:%u:%u:%u:%u", htons(modify_time.year), (modify_time.month), (modify_time.day), (modify_time.hour), (modify_time.minute), (modify_time.second));
+                    printf("%04u/%02u/%02u %02u:%02u:%02u", htons(modify_time.year), (modify_time.month), (modify_time.day), (modify_time.hour), (modify_time.minute), (modify_time.second));
                     printf("\n");                            
                 }
 
@@ -94,24 +89,22 @@ void goThroughEntry(char* data, uint32_t block_count, uint32_t starting_block, u
 
 int main(int argc, char* argv[])	{
 
-	//open the file
+	//open the file direcotry
 	int fd = open(argv[1], O_RDWR);
-
 	if (fd == -1)	{
 		printf("error opening test.img\n");
 		return 1;
 	}
 
-	//mmap the file
+	//create buffer
 	struct stat buffer;
 	if (fstat(fd,&buffer)==-1){
 		printf("fstat failed exiting.\n");
 		return -1;
 	}
 
-
+    //mmap the file
 	char* data = mmap(NULL, sizeof(char)*buffer.st_size, PROT_READ, MAP_SHARED, fd, 0);
-
 	if (data == (void*) -1)	{
 		printf("mmap failed with: %s\n", strerror(errno));
 	}
