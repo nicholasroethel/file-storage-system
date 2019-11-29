@@ -166,7 +166,7 @@ int main(int argc, char* argv[])	{
             }
             else{
                 printf("Test1\n");
-                memcpy(data+iterator, freeBlocks+(count+1), sizeof(void*));
+                memset(data+iterator, freeBlocks[count+1], sizeof(uint32_t));
                 printf("Test2\n");
                 //data[iterator] = (uint32_t)(freeBlocks[count+1]);
                 block = ntohl(*(uint32_t*)&data[iterator]);
