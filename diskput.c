@@ -161,12 +161,13 @@ int main(int argc, char* argv[])	{
         uint32_t block = ntohl(*(uint32_t*)&data[iterator]);
         if(block == 0x0){
             if(count + 1 == blocks){
-                data[iterator] = *(uint32_t*)(0xFFFFFFFF);
+                //data[iterator] = *(uint32_t*)(0xFFFFFFFF);
                 block = ntohl(*(uint32_t*)&data[iterator]);
                 printf("%d\n",block);
             }
             else{
-                data[iterator] = *(uint32_t*)(freeBlocks[count+1]);
+                memcpy( &data[iterator], (uint32_t)(freeBlocks[count+1]), sizeof(uint32_t) );
+                //data[iterator] = (uint32_t)(freeBlocks[count+1]);
                 block = ntohl(*(uint32_t*)&data[iterator]);
                 printf("%d\n",block);
             }
