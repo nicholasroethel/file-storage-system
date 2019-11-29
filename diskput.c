@@ -76,6 +76,7 @@ int main(int argc, char* argv[])	{
     char* file = argv[2];
     FILE *fptr; 
     fptr = fopen(file,"r");
+    printf("%s\n",file);
     if(fptr == NULL)
     {
       printf("Error opening file\n");   
