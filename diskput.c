@@ -73,7 +73,7 @@ int main(int argc, char* argv[])	{
     }
 
     /* open the file */
-    char* file = argv[2];
+    void* file = argv[2];
     FILE *fptr; 
     fptr = fopen(file,"r");
     printf("%s\n",file);
@@ -82,7 +82,6 @@ int main(int argc, char* argv[])	{
       printf("Error opening file\n");   
       exit(1);             
     }
-
 
     //get the directory
     char* directory = argv[3];
@@ -105,20 +104,8 @@ int main(int argc, char* argv[])	{
 		printf("mmap failed with: %s\n", strerror(errno));
 	}
 
-    printf("Length of mmap: %lu\n",strlen(data));
-
 	//cast the sb into a struct
     sb=(struct superblock_t*)data;
-
-    // get the file size
-    int fileSystemSize = htons(sb->block_size)*ntohl(sb->file_system_block_count);
-    printf("File size: %d\n",fileSystemSize);
-
-    char* fileSystem[fileSystemSize];
-
-    printf("%s\n",data);
-
-  //  memcpy(*fileSystem,&data,fileSystemSize);
 
     //get the amount of blocks needed
     int blocks = ceil(sz/htons(sb->block_size))+1;
@@ -174,12 +161,12 @@ int main(int argc, char* argv[])	{
         uint32_t block = ntohl(*(uint32_t*)&data[iterator]);
         if(block == 0x0){
             if(count + 1 == blocks){
-                data[iterator] = (char)(0xFFFFFFFF);
+                data[iterator] = *(uint32_t*)(0xFFFFFFFF);
                 block = ntohl(*(uint32_t*)&data[iterator]);
                 printf("%d\n",block);
             }
             else{
-                data[iterator] = (char)(freeBlocks[count+1]);
+                data[iterator] = *(uint32_t*)(freeBlocks[count+1]);
                 block = ntohl(*(uint32_t*)&data[iterator]);
                 printf("%d\n",block);
             }
