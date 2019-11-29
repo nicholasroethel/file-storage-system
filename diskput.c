@@ -35,7 +35,7 @@ struct __attribute__((__packed__)) dir_entry_timedate_t {
     uint8_t second;
 };
 
-//globals
+//Globals
 struct superblock_t s;
 struct superblock_t* sb = &s;
 int blocksNeeded  = 0; //will store the blocks needed to insert the file
@@ -52,24 +52,14 @@ void addToFAT(void* data, int availableBlocks, uint32_t* freeBlocks){ //adds the
     while(count<blocksNeeded){
         uint32_t block = ntohl(*(uint32_t*)&data[iterator]);
         if(block == 0x0){
-            if(count + 1 == blocksNeeded){
-                //data[iterator] = *(uint32_t*)(0xFFFFFFFF);
-                block = ntohl(*(uint32_t*)&data[iterator]);
-                printf("%d\n",block);
+            if(count + 1 == blocksNeeded){ //if its the last block for the file
+                //insert 0xFFFFFFFF
             }
-            else{
-                printf("Before Memset\n");
-                //memset(data[iterator], freeBlocks[count+1], sizeof(uint32_t));
-                printf("After Memset\n");
-                //data[iterator] = (uint32_t)(freeBlocks[count+1]);
-                block = ntohl(*(uint32_t*)&data[iterator]);
-                printf("%d\n",block);
+            else{ //if its not the last block needed for the file
+                memset(data[iterator], freeBlocks[count+1], sizeof(uint32_t));
             }
             count ++;
 
-        }
-        else if(block != 0x1){
-            //printf("%d\n",block );
         }
         iterator = iterator + 4;
     }
@@ -177,7 +167,7 @@ void* setupMap(char* argv[]){ //maps the data and gets the blocks needed
 
 }
 
-
+ 
 int main(int argc, char* argv[]){
     
     //get the file directory data
@@ -198,6 +188,6 @@ int main(int argc, char* argv[]){
 
     //adds the new entries to the FAT table
     addToFAT(data, availableBlocks, freeBlocks);
-    
+
 	return 0;
 }
