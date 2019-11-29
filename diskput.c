@@ -73,7 +73,7 @@ int main(int argc, char* argv[])	{
     }
 
     /* open the file */
-    void* file = argv[2];
+    char* file = argv[2];
     FILE *fptr; 
     fptr = fopen(file,"r");
     printf("%s\n",file);
@@ -99,7 +99,7 @@ int main(int argc, char* argv[])	{
 	}
 
     // mmap the file to
-	char* data = mmap(NULL, sizeof(char)*buffer.st_size, PROT_READ, MAP_SHARED, fd, 0);
+	void* data = mmap(NULL, sizeof(char)*buffer.st_size, PROT_READ, MAP_SHARED, fd, 0);
 	if (data == (void*) -1)	{
 		printf("mmap failed with: %s\n", strerror(errno));
 	}
@@ -137,11 +137,10 @@ int main(int argc, char* argv[])	{
      }
 
 
-    int freeBlocks[blocks];
+    uint32_t freeBlocks[blocks];
     iterator = ntohl(sb->fat_start_block)*htons(sb->block_size);
     int count = 0;
-    //uint32_t
-    //iterate
+
     while(count<blocks){
         uint32_t block = ntohl(*(uint32_t*)&data[iterator]);
         if(block == 0x0){
@@ -166,7 +165,9 @@ int main(int argc, char* argv[])	{
                 printf("%d\n",block);
             }
             else{
-                memcpy( &data[iterator], (uint32_t)(freeBlocks[count+1]), sizeof(uint32_t) );
+                printf("Test1\n");
+                memcpy( &data[iterator], &(freeBlocks[count+1]), sizeof(void*) );
+                printf("Test2\n");
                 //data[iterator] = (uint32_t)(freeBlocks[count+1]);
                 block = ntohl(*(uint32_t*)&data[iterator]);
                 printf("%d\n",block);
