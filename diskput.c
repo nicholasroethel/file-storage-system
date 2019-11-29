@@ -35,139 +35,32 @@ struct __attribute__((__packed__)) dir_entry_timedate_t {
     uint8_t second;
 };
 
-
+//globals
 struct superblock_t s;
 struct superblock_t* sb = &s;
-uint32_t amountOfBlocks = 0; //will store the amount of blocks
+int blocksNeeded  = 0; //will store the blocks needed to insert the file
 
 
-void copyData(uint32_t startingBlock, char* data, uint16_t block_size, FILE *file){
+void addToFAT(void* data, int availableBlocks, uint32_t* freeBlocks){ //adds the new entries to the FAT table
 
-    int count = 0; //counter for how many blocks travers
-    uint32_t fatStart = ntohl(sb->fat_start_block);//where the block where the fat starts
-
-    for(uint32_t i = startingBlock; count<amountOfBlocks; count++){
-
-            uint32_t iterator = i*block_size;
-            uint32_t max = (i + 1)*(block_size);
-            printf("%d\n",max);
-
-             while(iterator < max){
-                putc((*(uint8_t*)&data[iterator]), file);
-                iterator = iterator + 1;
-                
-            }
-
-        i = ntohl(*(uint32_t*)&data[fatStart*block_size+i*4]); //get the next block
-    }
-}
-
-
-int main(int argc, char* argv[])	{
-
-	/* open the file */
-	int fd = open(argv[1], O_RDWR);
-    if (fd == -1)   {
-        printf("error opening test.img\n");
-        return 1;
-    }
-
-    /* open the file */
-    char* file = argv[2];
-    FILE *fptr; 
-    fptr = fopen(file,"r");
-    printf("%s\n",file);
-    if(fptr == NULL)
-    {
-      printf("Error opening file\n");   
-      exit(1);             
-    }
-
-    //get the directory
-    char* directory = argv[3];
-
-    //get the file size
-    fseek(fptr, 0L, SEEK_END);
-    int sz = ftell(fptr);
-    printf("Size %d\n",sz);
-
-    //fstat buffer
-	struct stat buffer;
-	if (fstat(fd,&buffer)==-1){
-		printf("fstat failed exiting.\n");
-		return -1;
-	}
-
-    // mmap the file to
-	void* data = mmap(NULL, sizeof(char)*buffer.st_size, PROT_READ, MAP_SHARED, fd, 0);
-	if (data == (void*) -1)	{
-		printf("mmap failed with: %s\n", strerror(errno));
-	}
-
-	//cast the sb into a struct
-    sb=(struct superblock_t*)data;
-
-    //get the amount of blocks needed
-    int blocks = ceil(sz/htons(sb->block_size))+1;
-    printf("Blocks needed: %d\n", blocks);
-
-    //get the FAT info
+    //declare variables for looping
+    int count = 0;
     int iterator = ntohl(sb->fat_start_block)*htons(sb->block_size);
     int max = ((ntohl(sb->fat_start_block + sb->fat_block_count)*htons(sb->block_size)));
 
-    //vars to store the data
-    int availableBlocks = 0;
-
-    //find amount of free blocks
-    while(iterator<max){
-        uint32_t block = ntohl(*(uint32_t*)&data[iterator]);
-
-        if(block == 0x0){
-            availableBlocks ++;
-        }
-        iterator = iterator + 4;
-    }
-
-    //print the FAT info
-    printf("Available Blocks: %d\n",availableBlocks);
-
-     if(availableBlocks<blocks){
-        printf("Not enough space in the img to copy the file.\n");
-        return 1;
-     }
-
-
-    uint32_t freeBlocks[blocks];
-    iterator = ntohl(sb->fat_start_block)*htons(sb->block_size);
-    int count = 0;
-
-    while(count<blocks){
+    //loop to fill the FAT with pointers to blocks that will be used
+    while(count<blocksNeeded){
         uint32_t block = ntohl(*(uint32_t*)&data[iterator]);
         if(block == 0x0){
-            freeBlocks[count] = (iterator-(ntohl(sb->fat_start_block)*htons(sb->block_size)))/4;
-            printf("%d\n",freeBlocks[count]);
-            count++;
-        }
-        else if(block != 0x1){
-            //printf("%d\n",block );
-        }
-        iterator = iterator + 4;
-    }
-
-    iterator = ntohl(sb->fat_start_block)*htons(sb->block_size);
-    count = 0;
-    while(count<blocks){
-        uint32_t block = ntohl(*(uint32_t*)&data[iterator]);
-        if(block == 0x0){
-            if(count + 1 == blocks){
+            if(count + 1 == blocksNeeded){
                 //data[iterator] = *(uint32_t*)(0xFFFFFFFF);
                 block = ntohl(*(uint32_t*)&data[iterator]);
                 printf("%d\n",block);
             }
             else{
-                printf("Test1\n");
-                memset(data+iterator, freeBlocks[count+1], sizeof(uint32_t));
-                printf("Test2\n");
+                printf("Before Memset\n");
+                //memset(data[iterator], freeBlocks[count+1], sizeof(uint32_t));
+                printf("After Memset\n");
                 //data[iterator] = (uint32_t)(freeBlocks[count+1]);
                 block = ntohl(*(uint32_t*)&data[iterator]);
                 printf("%d\n",block);
@@ -181,13 +74,130 @@ int main(int argc, char* argv[])	{
         iterator = iterator + 4;
     }
 
-    //print the given directory
-    //uint32_t startingBlock = findFile(file, data, ntohl(sb->root_dir_block_count), ntohl(sb->root_dir_start_block), htons(sb->block_size));
+}
 
-    //copyData(startingBlock, data, htons(sb->block_size), fptr);
+void firstAvailableBlocks(void* data, int availableBlocks, uint32_t* freeBlocks){
+
+    //define variables for looping
+    int iterator = ntohl(sb->fat_start_block)*htons(sb->block_size);
+    int max = ((ntohl(sb->fat_start_block + sb->fat_block_count)*htons(sb->block_size)));
+    iterator = ntohl(sb->fat_start_block)*htons(sb->block_size);
+    int count = 0;
+
+    printf("First available blocks: ");
+    while(count<blocksNeeded){ //find the first N available blocks
+        uint32_t block = ntohl(*(uint32_t*)&data[iterator]);
+        if(block == 0x0){
+            freeBlocks[count] = (iterator-(ntohl(sb->fat_start_block)*htons(sb->block_size)))/4;
+            printf("%d ",freeBlocks[count]);
+            count++;
+        }
+        iterator = iterator + 4;
+    }
+    printf("\n");
+}
+
+int getAllAvailableBlocks(void* data){ //gets the amount of available blocks in the FAT
+    //get the FAT info
+    int iterator = ntohl(sb->fat_start_block)*htons(sb->block_size);
+    int max = ((ntohl(sb->fat_start_block + sb->fat_block_count)*htons(sb->block_size)));
+
+    //vars to store the data
+    int availableBlocks = 0;
+
+    //find amount of free blocks
+    while(iterator<max){
+        uint32_t block = ntohl(*(uint32_t*)&data[iterator]);
+        if(block == 0x0){
+            availableBlocks ++;
+        }
+        iterator = iterator + 4;
+    }
+
+    //sanity check
+    if(availableBlocks<blocksNeeded){
+        printf("Not enough space in the img to copy the file.\n");
+        exit(1);
+     }
+
+   return availableBlocks;
+
+}
+
+char* setupFile(char* argv[]){ //reads in the file and gets the size
+
+    //open the file
+    char* file = argv[2];
+    FILE *fptr; 
+    fptr = fopen(file,"r");
+    if(fptr == NULL){
+      printf("Error opening file\n");   
+      exit(1);             
+    }
+
+    //get the file size
+    fseek(fptr, 0L, SEEK_END);
+    int sz = ftell(fptr);
+
+    //get the amount of blocks needed
+    blocksNeeded = ceil(sz/htons(sb->block_size))+1;
 
     fclose(fptr);
+    return file;
 
+}
+
+void* setupMap(char* argv[]){ //maps the data and gets the blocks needed
+
+    /* open the file system */
+    int fd = open(argv[1], O_RDWR);
+    if (fd == -1)   {
+        printf("error opening test.img\n");
+        exit(1);
+    }
+
+    //fstat buffer
+    struct stat buffer;
+    if (fstat(fd,&buffer)==-1){
+        printf("fstat failed exiting.\n");
+        exit(1);
+    }
+
+    // mmap the file directory
+    void* data = mmap(NULL, sizeof(char)*buffer.st_size, PROT_READ, MAP_SHARED, fd, 0);
+    if (data == (void*) -1) {
+        printf("mmap failed with: %s\n", strerror(errno));
+        exit(1);
+    }
+
+    //cast the sb into a struct
+    sb=(struct superblock_t*)data;
+
+    return data;
+
+}
+
+
+int main(int argc, char* argv[]){
+    
+    //get the file directory data
+    void* data = setupMap(argv);  
+
+    //read in the file
+    char* file = setupFile(argv); 
+    
+    //get the destination directory
+    char* directory = argv[3]; 
+
+    //get the amount of available blocks
+    int availableBlocks = getAllAvailableBlocks(data); 
+
+    //fill an array with the first N free blocks found
+    uint32_t freeBlocks[blocksNeeded];
+    firstAvailableBlocks(data, availableBlocks, freeBlocks);
+
+    //adds the new entries to the FAT table
+    addToFAT(data, availableBlocks, freeBlocks);
+    
 	return 0;
-
 }
