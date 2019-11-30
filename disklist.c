@@ -91,7 +91,7 @@ void goThroughEntry(char* data, uint32_t block_count, uint32_t starting_block, u
                         filename[count] = (*(uint8_t*)&data[count+iterator+27]);
                     }
                     name = (char*)(filename);
-                    if(iteration == depth && strcmp(name,directoryName)==0){
+                    if(iteration == depth){
                         if (status==3){
                             printf("F ");
                         }
