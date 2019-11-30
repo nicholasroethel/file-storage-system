@@ -56,7 +56,7 @@ void addToFAT(void* data, int availableBlocks, uint32_t* freeBlocks){ //adds the
                 //insert 0xFFFFFFFF
             }
             else{ //if its not the last block needed for the file
-                //memset(data[iterator], freeBlocks[count+1], sizeof(uint32_t));
+                //insert address to next block
             }
             count ++;
 
