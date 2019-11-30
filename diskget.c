@@ -183,15 +183,15 @@ int main(int argc, char* argv[])	{
     }
 
     //get the file
-    char* file = argv[3];
+    char* dest = argv[3];
 
-    if(file[0]=='/'){
-        memmove(file, file+1, strlen(file));
+    if(dest[0]=='/'){
+        memmove(dest, dest+1, strlen(dest));
     }
 
     //open a new file
     FILE *fptr;  
-    fptr = fopen(file,"w");
+    fptr = fopen(dest,"w");
     if(fptr == NULL)
     {
       printf("Error creating file");   
@@ -219,18 +219,18 @@ int main(int argc, char* argv[])	{
 
     char* subdirectories[100];
 
+    //get the file name and directory
     const char s[2] = "/";
     char *token;
-
     token = strtok(directory, s);
     int count = 0; 
-
     while( token != NULL ) {
         subdirectories[count] = token;
         token = strtok(NULL, s);
         count++;
     }
     subdirectories[count] = (char*)'\0';
+    char* file = subdirectories[count-1];
     int depth = count;
 
     //cast the sb into a struct
@@ -247,21 +247,18 @@ int main(int argc, char* argv[])	{
     struct dir_entry_t subdir = *((struct dir_entry_t*)malloc(sizeof(struct dir_entry_t)));
     
     //iterates though subdirs
-    while(count<depth) {
+    while(count<depth-1) {
       char* subdirname = subdirectories[count];
+      printf("%s\n",subdirname);
       goThroughEntry(data, directoryBlockCount, directoryStartBlock, blockSize, subdirname, &subdir, count, depth);
       //get the info of the next directory
       directoryStartBlock = subdir.starting_block;
       directoryBlockCount = subdir.block_count;
       count++;
     }
-    //prints the last dir
-    // char* subdirname = subdirectories[count-1];
-    // goThroughEntry(data, directoryBlockCount, directoryStartBlock, blockSize, subdirname, &subdir, count, depth);
-
 
     //get the starting block of the file
-    uint32_t startingBlock = findFile(file, data, ntohl(sb->root_dir_block_count), ntohl(sb->root_dir_start_block), htons(sb->block_size));
+    uint32_t startingBlock = findFile(file, data, directoryBlockCount, directoryStartBlock, htons(sb->block_size));
 
     //copy the data
     copyData(startingBlock, data, htons(sb->block_size), fptr);
