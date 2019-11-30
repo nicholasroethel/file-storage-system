@@ -33,11 +33,38 @@ struct __attribute__((__packed__)) dir_entry_timedate_t {
     uint8_t second;
 };
 
+//dir entry struct
+struct __attribute__((__packed__)) dir_entry_t {
+    uint8_t status;
+    uint32_t starting_block;
+    uint32_t block_count;
+    uint32_t size;
+    struct dir_entry_timedate_t create_time;
+    struct dir_entry_timedate_t modify_time;
+    uint8_t filename[31];
+    uint8_t unused[6];
+};
 
 struct superblock_t s;
 struct superblock_t* sb = &s;
 
-void goThroughEntry(char* data, uint32_t block_count, uint32_t starting_block, uint16_t block_size){ //goes through each entry
+int getDepth(char* directory){ //returns the depth of of the subdirectory 
+    
+    const char s[2] = "/";
+    char *token;
+
+    token = strtok(directory, s);
+    int count = 0; 
+
+    while( token != NULL ) {
+      token = strtok(NULL, s);
+      count++;
+    }
+
+    return count;
+}
+
+void goThroughEntry(char* data, uint32_t block_count, uint32_t starting_block, uint16_t block_size, char* directoryName, struct dir_entry_t* subdir, int iteration, int depth){ //goes through each entry
 
     int count = 0; //counter for how many blocks travers
     uint32_t fatStart = ntohl(sb->fat_start_block);//where the block where the fat starts
@@ -57,24 +84,32 @@ void goThroughEntry(char* data, uint32_t block_count, uint32_t starting_block, u
                 struct dir_entry_timedate_t modify_time = (*(struct dir_entry_timedate_t*)&data[iterator+20]);
                 char* name;
 
-                //print if non-zero status
+                //if its a file or directory
                 if(status != 0){
                     uint8_t filename[31];
                     for (int count = 0; count<31;count++){
                         filename[count] = (*(uint8_t*)&data[count+iterator+27]);
                     }
                     name = (char*)(filename);
-
-                    if (status==3){
-                        printf("F ");
+                    if(iteration == depth && strcmp(name,directoryName)==0){
+                        if (status==3){
+                            printf("F ");
+                        }
+                        else if (status==5){
+                            printf("D ");
+                        }
+                        printf("%10d ",size);
+                        printf("%30s ",filename);
+                        printf("%04u/%02u/%02u %02u:%02u:%02u", htons(modify_time.year), (modify_time.month), (modify_time.day), (modify_time.hour), (modify_time.minute), (modify_time.second));
+                        printf("\n");
+                        //exit(0);
                     }
-                    else if (status==5){
-                        printf("D ");
-                    }
-                    printf("%10d ",size);
-                    printf("%30s ",filename);
-                    printf("%04u/%02u/%02u %02u:%02u:%02u", htons(modify_time.year), (modify_time.month), (modify_time.day), (modify_time.hour), (modify_time.minute), (modify_time.second));
-                    printf("\n");                            
+                    else if(strcmp(name,directoryName)==0){
+                        printf("Found\n");
+                        subdir->size = size;
+                        subdir->starting_block = startingBlock;
+                        return;
+                    }                           
                 }
 
                 iterator = iterator + 64;
@@ -82,7 +117,6 @@ void goThroughEntry(char* data, uint32_t block_count, uint32_t starting_block, u
             }
 
         i = ntohl(*(uint32_t*)&data[fatStart*block_size+i*4]); //get the next block
-
     }
 }
 
@@ -109,11 +143,40 @@ int main(int argc, char* argv[])	{
 		printf("mmap failed with: %s\n", strerror(errno));
 	}
 
+    //gets the depth of the directory to list
+    char* directory = argv[2];
+
+    int depth = getDepth(directory);
+
 	//cast the sb into a struct
     sb=(struct superblock_t*)data;
 
+    //start variables for looping
+    uint32_t directoryBlockCount = ntohl(sb->root_dir_block_count);
+    uint32_t directoryStartBlock = ntohl(sb->root_dir_start_block);
+    uint16_t blockSize = htons(sb->block_size);
+
+    //iterate through each directory
+    const char s[2] = "/";
+    char *token;
+    token = strtok(directory, s);
+    int count = 1; 
+    struct dir_entry_t subdir = *((struct dir_entry_t*)malloc(sizeof(struct dir_entry_t)));
+    char *directoryName = token;
+    while(token != NULL ) {
+      directoryName = token;
+      printf("count: %d  depth: %d\n",count,depth);
+      goThroughEntry(data, directoryBlockCount, directoryStartBlock, blockSize, directoryName, &subdir, count, depth);
+      directoryStartBlock = subdir.starting_block;
+      directoryBlockCount = subdir.block_count;
+      count++;
+      token = strtok(NULL, s);
+    }
+    count++;
+    goThroughEntry(data, directoryBlockCount, directoryStartBlock, blockSize, directoryName, &subdir, count, depth);
     //print the given directory
-    goThroughEntry(data, ntohl(sb->root_dir_block_count), ntohl(sb->root_dir_start_block), htons(sb->block_size));
+    
+
 
 	return 0;
 

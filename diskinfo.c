@@ -39,7 +39,7 @@ int main(int argc, char* argv[])	{
 	struct stat buffer;
 	if (fstat(fd,&buffer)==-1){
 		printf("fstat failed exiting.\n");
-		return -1;
+		return -1; 
 	}
 
 
