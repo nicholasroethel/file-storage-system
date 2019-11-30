@@ -106,9 +106,8 @@ void goThroughEntry(char* data, uint32_t block_count, uint32_t starting_block, u
                     }
                     else if(strcmp(name,directoryName)==0){
                         printf("Found\n");
-                        subdir->size = size;
+                        subdir->block_count = blockCount;
                         subdir->starting_block = startingBlock;
-                        return;
                     }                           
                 }
 
@@ -146,7 +145,23 @@ int main(int argc, char* argv[])	{
     //gets the depth of the directory to list
     char* directory = argv[2];
 
-    int depth = getDepth(directory);
+    char* subdirectories[100];
+
+    const char s[2] = "/";
+    char *token;
+
+    token = strtok(directory, s);
+    int count = 0; 
+
+    while( token != NULL ) {
+        subdirectories[count] = token;
+        token = strtok(NULL, s);
+        count++;
+    }
+    subdirectories[count] = (char*)'\0';
+
+
+    int depth = count;
 
 	//cast the sb into a struct
     sb=(struct superblock_t*)data;
@@ -157,23 +172,20 @@ int main(int argc, char* argv[])	{
     uint16_t blockSize = htons(sb->block_size);
 
     //iterate through each directory
-    const char s[2] = "/";
-    char *token;
     token = strtok(directory, s);
-    int count = 1; 
+    count = 0; 
     struct dir_entry_t subdir = *((struct dir_entry_t*)malloc(sizeof(struct dir_entry_t)));
-    char *directoryName = token;
-    while(token != NULL ) {
-      directoryName = token;
-      printf("count: %d  depth: %d\n",count,depth);
-      goThroughEntry(data, directoryBlockCount, directoryStartBlock, blockSize, directoryName, &subdir, count, depth);
+    
+    while(count<depth) {
+      char* subdirname = subdirectories[count];
+      printf("%s\n",subdirname);
+      goThroughEntry(data, directoryBlockCount, directoryStartBlock, blockSize, subdirname, &subdir, count, depth);
       directoryStartBlock = subdir.starting_block;
       directoryBlockCount = subdir.block_count;
       count++;
-      token = strtok(NULL, s);
     }
-    count++;
-    goThroughEntry(data, directoryBlockCount, directoryStartBlock, blockSize, directoryName, &subdir, count, depth);
+    char* subdirname = subdirectories[count-1];
+    goThroughEntry(data, directoryBlockCount, directoryStartBlock, blockSize, subdirname, &subdir, count, depth);
     //print the given directory
     
 
