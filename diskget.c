@@ -249,7 +249,6 @@ int main(int argc, char* argv[])	{
     //iterates though subdirs
     while(count<depth-1) {
       char* subdirname = subdirectories[count];
-      printf("%s\n",subdirname);
       goThroughEntry(data, directoryBlockCount, directoryStartBlock, blockSize, subdirname, &subdir, count, depth);
       //get the info of the next directory
       directoryStartBlock = subdir.starting_block;
@@ -264,7 +263,6 @@ int main(int argc, char* argv[])	{
     copyData(startingBlock, data, htons(sb->block_size), fptr);
 
     fclose(fptr);
-
 	return 0;
 
 }
