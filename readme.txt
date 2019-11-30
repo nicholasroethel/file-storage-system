@@ -1,4 +1,4 @@
-Brief Overview:
+Brief Overview: 
 
 For this file system assignment I implemented it and got sub directories to work for parts 2 and parts 3. I also did not part5. Each part was done in a separate file. 
 
