@@ -48,22 +48,6 @@ struct __attribute__((__packed__)) dir_entry_t {
 struct superblock_t s;
 struct superblock_t* sb = &s;
 
-int getDepth(char* directory){ //returns the depth of of the subdirectory 
-    
-    const char s[2] = "/";
-    char *token;
-
-    token = strtok(directory, s);
-    int count = 0; 
-
-    while( token != NULL ) {
-      token = strtok(NULL, s);
-      count++;
-    }
-
-    return count;
-}
-
 void goThroughEntry(char* data, uint32_t block_count, uint32_t starting_block, uint16_t block_size, char* directoryName, struct dir_entry_t* subdir, int iteration, int depth){ //goes through each entry
 
     int count = 0; //counter for how many blocks travers
@@ -91,7 +75,7 @@ void goThroughEntry(char* data, uint32_t block_count, uint32_t starting_block, u
                         filename[count] = (*(uint8_t*)&data[count+iterator+27]);
                     }
                     name = (char*)(filename);
-                    if(iteration == depth){
+                    if(iteration == depth){ //print if in the specified dir
                         if (status==3){
                             printf("F ");
                         }
@@ -102,10 +86,8 @@ void goThroughEntry(char* data, uint32_t block_count, uint32_t starting_block, u
                         printf("%30s ",filename);
                         printf("%04u/%02u/%02u %02u:%02u:%02u", htons(modify_time.year), (modify_time.month), (modify_time.day), (modify_time.hour), (modify_time.minute), (modify_time.second));
                         printf("\n");
-                        //exit(0);
                     }
                     else if(strcmp(name,directoryName)==0){
-                        printf("Found\n");
                         subdir->block_count = blockCount;
                         subdir->starting_block = startingBlock;
                     }                           
@@ -159,8 +141,6 @@ int main(int argc, char* argv[])	{
         count++;
     }
     subdirectories[count] = (char*)'\0';
-
-
     int depth = count;
 
 	//cast the sb into a struct
@@ -176,20 +156,18 @@ int main(int argc, char* argv[])	{
     count = 0; 
     struct dir_entry_t subdir = *((struct dir_entry_t*)malloc(sizeof(struct dir_entry_t)));
     
+    //iterates though subdirs
     while(count<depth) {
       char* subdirname = subdirectories[count];
-      printf("%s\n",subdirname);
       goThroughEntry(data, directoryBlockCount, directoryStartBlock, blockSize, subdirname, &subdir, count, depth);
+      //get the info of the next directory
       directoryStartBlock = subdir.starting_block;
       directoryBlockCount = subdir.block_count;
       count++;
     }
+    //prints the last dir
     char* subdirname = subdirectories[count-1];
     goThroughEntry(data, directoryBlockCount, directoryStartBlock, blockSize, subdirname, &subdir, count, depth);
-    //print the given directory
-    
-
-
 	return 0;
 
 }
